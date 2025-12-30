@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PasswordForm } from "@/login/password-form";
+import { loginWithEmail } from "@/services/auth";
 
 const REGISTER_URL = "https://yun.haodeyun.cn/register";
 
@@ -52,15 +53,22 @@ function Link({
 
 type LoginStep = "account" | "password";
 
+interface LoginFormProps extends React.ComponentProps<"div"> {
+  onLoginSuccess: () => void
+}
+
 export function LoginForm({
   className,
+  onLoginSuccess,
   ...props
-}: React.ComponentProps<"div">) {
+}: LoginFormProps) {
   const [step, setStep] = useState<LoginStep>("account");
   const [loginType, setLoginType] = useState<"email" | "phone">("email");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   const currentAccount = loginType === "email" ? email : phone;
 
@@ -70,6 +78,12 @@ export function LoginForm({
     if (loginType === "email") {
       if (!email.trim()) {
         setFormError("请输入邮箱");
+        return;
+      }
+      // 邮箱格式检测
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        setFormError("请输入有效的邮箱地址");
         return;
       }
     }
@@ -87,15 +101,34 @@ export function LoginForm({
 
   const handleBack = () => {
     setStep("account");
+    setLoginError(null);
   };
 
-  const handlePasswordSubmit = (password: string) => {
-    // TODO: 实现实际的登录逻辑
-    console.log("Login with:", {
-      type: loginType,
-      account: currentAccount,
-      password,
-    });
+  const handlePasswordSubmit = async (password: string) => {
+    if (loginType !== "email") {
+      setLoginError("暂不支持手机号登录");
+      return;
+    }
+
+    setIsLoading(true);
+    setLoginError(null);
+
+    try {
+      const response = await loginWithEmail({
+        email: currentAccount,
+        password,
+      });
+
+      if (response.status === 200) {
+        onLoginSuccess();
+      } else {
+        setLoginError(response.msg || "登录失败，请重试");
+      }
+    } catch {
+      setLoginError("网络错误，请检查网络连接");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // 密码输入步骤
@@ -108,6 +141,8 @@ export function LoginForm({
         account={currentAccount}
         onBack={handleBack}
         onSubmit={handlePasswordSubmit}
+        isLoading={isLoading}
+        error={loginError}
       />
     );
   }
@@ -193,7 +228,7 @@ export function LoginForm({
 
           <Field>
             <Button type="submit" className="cursor-pointer">
-              登录
+              继续
             </Button>
           </Field>
           <FieldSeparator>或</FieldSeparator>

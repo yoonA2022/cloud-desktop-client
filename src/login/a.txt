@@ -1,0 +1,87 @@
+{
+  "allow_resource_api": true,
+  "allow_second_verify": 0,
+  "user": {
+    "id": 35,
+    "username": "18607070823",
+    "usertype": 1,
+    "sex": 0,
+    "profession": "",
+    "signature": "",
+    "companyname": "",
+    "groupid": 2,
+    "email": "2256731859@qq.com",
+    "wechat_id": null,
+    "country": "",
+    "province": "",
+    "city": "",
+    "region": "",
+    "address1": "",
+    "postcode": "",
+    "phonenumber": "18607070823",
+    "currency": 1,
+    "defaultgateway": "EpayAlipay",
+    "credit": "0.00",
+    "billingcid": 0,
+    "cardtype": "",
+    "cardlastfour": "",
+    "host": "",
+    "language": "",
+    "emailoptout": 0,
+    "marketing_emails_opt_in": 1,
+    "overrideautoclose": 0,
+    "allow_sso": 0,
+    "know_us": null,
+    "is_login_sms_reminder": 0,
+    "create_time": 1742015030,
+    "sale_id": 0,
+    "qq": "",
+    "api_password": "ENL47ePxhw4X",
+    "second_verify": 0,
+    "status": 1,
+    "email_remind": 1,
+    "is_open_credit_limit": 0,
+    "api_open": 1,
+    "send_close": 0,
+    "is_password": 1,
+    "certifi": {
+      "name": "柴",
+      "status": 1,
+      "auth_fail": "",
+      "type": "certifi_person"
+    }
+  },
+  "certifi_open": "1",
+  "customs": [],
+  "gateways": [
+    {
+      "id": 56,
+      "name": "AliPayH5",
+      "title": "支付宝网页支付",
+      "status": 1,
+      "module": "gateways"
+    },
+    {
+      "id": 57,
+      "name": "EpayWxpay",
+      "title": "微信支付",
+      "status": 1,
+      "module": "gateways"
+    }
+  ],
+  "client_group": {
+    "group_name": "一级代理",
+    "group_colour": "#E90B0B"
+  },
+  "developer": [],
+  "status": 200,
+  "msg": "请求成功",
+  "second_verify_action_home": [
+    ""
+  ],
+  "voucher_manager": "1",
+  "buy_product_must_bind_phone": 0,
+  "shd_allow_sms_send": "1",
+  "shd_allow_email_send": "1",
+  "is_aff": "0"
+}

@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Tabs } from "@/components/ui/tabs";
+import { Spinner } from "@/components/ui/spinner";
 
 const PASSWORD_RESET_URL = "https://yun.haodeyun.cn/pwreset";
 
@@ -35,6 +36,8 @@ export interface PasswordFormProps extends Omit<
   account: string;
   onBack: () => void;
   onSubmit: (password: string) => void;
+  isLoading?: boolean;
+  error?: string | null;
 }
 
 export function PasswordForm({
@@ -43,12 +46,15 @@ export function PasswordForm({
   account,
   onBack,
   onSubmit,
+  isLoading = false,
+  error,
   ...props
 }: PasswordFormProps) {
   const [password, setPassword] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
 
   const accountLabel = loginType === "email" ? "邮箱" : "手机号";
+  const displayError = error || formError;
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -98,12 +104,19 @@ export function PasswordForm({
               />
             </Field>
   
-            <FieldError className="text-center">{formError}</FieldError>
+            <FieldError className="text-center">{displayError}</FieldError>
           </Tabs>
 
           <Field>
-            <Button type="submit" className="cursor-pointer">
-              登录
+            <Button type="submit" className="cursor-pointer" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Spinner />
+                  登录中
+                </>
+              ) : (
+                "登录"
+              )}
             </Button>
           </Field>
 
@@ -113,6 +126,7 @@ export function PasswordForm({
               variant="ghost"
               className="cursor-pointer"
               onClick={onBack}
+              disabled={isLoading}
             >
               <IoArrowBack className="size-4" />
               返回上一步

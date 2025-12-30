@@ -1,14 +1,40 @@
+import { useState, useEffect } from "react"
 import { LoginPage } from "@/login/login-page"
-import { ThemeToggle } from "@/components/theme-toggle/theme-toggle"
+import { HomePage } from "@/home/home-page"
+import { LoadingScreen } from "@/components/loading/loading-screen"
+import { checkAuthStatus } from "@/services/auth"
+import { hasToken } from "@/lib/storage"
 
 function App() {
-  return (
-    <>
-      <div className="absolute top-4 right-4 z-10">
-        <ThemeToggle />
-      </div>
-      <LoginPage />
-    </>
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [isChecking, setIsChecking] = useState(true)
+
+  useEffect(() => {
+    async function checkAuth() {
+      // 如果本地没有 token，直接显示登录页
+      if (!hasToken()) {
+        setIsChecking(false)
+        return
+      }
+
+      // 有 token 则验证是否有效
+      const isValid = await checkAuthStatus()
+      setIsLoggedIn(isValid)
+      setIsChecking(false)
+    }
+
+    checkAuth()
+  }, [])
+
+  // 检查登录状态时显示加载
+  if (isChecking) {
+    return <LoadingScreen />
+  }
+
+  return isLoggedIn ? (
+    <HomePage onLogout={() => setIsLoggedIn(false)} />
+  ) : (
+    <LoginPage onLoginSuccess={() => setIsLoggedIn(true)} />
   )
 }
 

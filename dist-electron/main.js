@@ -1,62 +1,47 @@
-import { ipcMain, shell, app, BrowserWindow } from "electron";
-import { fileURLToPath } from "node:url";
-import path from "node:path";
-import { existsSync } from "node:fs";
-const __dirname$1 = path.dirname(fileURLToPath(import.meta.url));
-process.env.APP_ROOT = path.join(__dirname$1, "..");
-const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
-const MAIN_DIST = path.join(process.env.APP_ROOT, "dist-electron");
-const RENDERER_DIST = path.join(process.env.APP_ROOT, "dist");
-process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, "public") : RENDERER_DIST;
-let win;
-ipcMain.handle("open-external", async (_event, url) => {
-  if (typeof url !== "string") return;
-  try {
-    const parsed = new URL(url);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return;
-    await shell.openExternal(parsed.toString());
-  } catch {
-    return;
-  }
+import { ipcMain as d, shell as m, app as t, BrowserWindow as a } from "electron";
+import { fileURLToPath as h } from "node:url";
+import n from "node:path";
+import { existsSync as R } from "node:fs";
+const c = n.dirname(h(import.meta.url));
+process.env.APP_ROOT = n.join(c, "..");
+const s = process.env.VITE_DEV_SERVER_URL, P = n.join(process.env.APP_ROOT, "dist-electron"), p = n.join(process.env.APP_ROOT, "dist");
+process.env.VITE_PUBLIC = s ? n.join(process.env.APP_ROOT, "public") : p;
+let e;
+d.handle("open-external", async (i, o) => {
+  if (typeof o == "string")
+    try {
+      const r = new URL(o);
+      if (r.protocol !== "http:" && r.protocol !== "https:") return;
+      await m.openExternal(r.toString());
+    } catch {
+      return;
+    }
 });
-function createWindow() {
-  const iconPath = path.join(process.env.VITE_PUBLIC || "", "icon.png");
-  const icon = existsSync(iconPath) ? iconPath : void 0;
-  win = new BrowserWindow({
-    ...icon && { icon },
-    autoHideMenuBar: true,
+function l() {
+  const i = n.join(process.env.VITE_PUBLIC || "", "icon.png"), o = R(i) ? i : void 0;
+  e = new a({
+    ...o && { icon: o },
+    autoHideMenuBar: !0,
     width: 1200,
     height: 800,
     minWidth: 800,
     minHeight: 600,
     webPreferences: {
-      preload: path.join(__dirname$1, "preload.mjs")
+      preload: n.join(c, "preload.mjs")
     }
-  });
-  win.setMenuBarVisibility(false);
-  win.webContents.on("did-finish-load", () => {
-    win == null ? void 0 : win.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toLocaleString());
-  });
-  if (VITE_DEV_SERVER_URL) {
-    win.loadURL(VITE_DEV_SERVER_URL);
-  } else {
-    win.loadFile(path.join(RENDERER_DIST, "index.html"));
-  }
+  }), e.setMenuBarVisibility(!1), e.webContents.on("did-finish-load", () => {
+    e == null || e.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toLocaleString());
+  }), s ? e.loadURL(s) : e.loadFile(n.join(p, "index.html"));
 }
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
-    win = null;
-  }
+t.on("window-all-closed", () => {
+  process.platform !== "darwin" && (t.quit(), e = null);
 });
-app.on("activate", () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-  }
+t.on("activate", () => {
+  a.getAllWindows().length === 0 && l();
 });
-app.whenReady().then(createWindow);
+t.whenReady().then(l);
 export {
-  MAIN_DIST,
-  RENDERER_DIST,
-  VITE_DEV_SERVER_URL
+  P as MAIN_DIST,
+  p as RENDERER_DIST,
+  s as VITE_DEV_SERVER_URL
 };
