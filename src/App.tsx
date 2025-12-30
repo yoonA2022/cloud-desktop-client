@@ -1,10 +1,14 @@
-import { Button } from "@/components/ui/button"
+import { LoginPage } from "@/login/login-page"
+import { ThemeToggle } from "@/components/theme-toggle/theme-toggle"
 
 function App() {
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center">
-      <Button>Click me</Button>
-    </div>
+    <>
+      <div className="absolute top-4 right-4 z-10">
+        <ThemeToggle />
+      </div>
+      <LoginPage />
+    </>
   )
 }
 
