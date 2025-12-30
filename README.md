@@ -1,2 +1,0 @@
-Electron + React + Vite + NextUI + Node.js + TypeScript
-
