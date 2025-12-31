@@ -1,3 +1,8 @@
+/**
+ * 应用布局组件
+ * 提供包含侧边栏和头部的整体页面布局结构
+ */
+
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/home/layout/components/app-sidebar";
 import { AppHeader } from "@/home/layout/components/app-header";

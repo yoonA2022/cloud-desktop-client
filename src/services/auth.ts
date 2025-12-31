@@ -1,3 +1,8 @@
+/**
+ * 认证服务
+ * 处理用户登录、登出和认证状态检查
+ */
+
 import { api } from "@/services/api";
 import { setToken, removeToken } from "@/lib/storage";
 import type { LoginRequest, LoginResponse, UserInfoResponse } from "@/types/auth";

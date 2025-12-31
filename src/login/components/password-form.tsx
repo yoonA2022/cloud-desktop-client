@@ -1,3 +1,8 @@
+/**
+ * 密码输入表单组件
+ * 处理密码输入和登录提交，支持忘记密码功能
+ */
+
 import { useState } from "react";
 import { IoArrowBack } from "react-icons/io5";
 import logo from "@/assets/images/logo.png";

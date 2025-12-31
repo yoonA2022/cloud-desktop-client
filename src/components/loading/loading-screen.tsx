@@ -1,3 +1,8 @@
+/**
+ * 加载屏幕组件
+ * 显示加载状态和可选的文本信息
+ */
+
 import { Spinner } from "@/components/ui/spinner";
 
 interface LoadingScreenProps {

@@ -1,3 +1,8 @@
+/**
+ * 应用主组件
+ * 管理应用的整体状态和路由逻辑，包括登录状态检查
+ */
+
 import { useState, useEffect } from "react"
 import { LoginPage } from "@/login/login-page"
 import { HomePage } from "@/home/home-page"

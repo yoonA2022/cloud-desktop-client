@@ -1,3 +1,8 @@
+/**
+ * 登录表单组件
+ * 支持邮箱和手机号登录，包含分步输入和第三方登录选项
+ */
+
 import { useState } from "react";
 import { FaApple, FaGoogle } from "react-icons/fa";
 import logo from "@/assets/images/logo.png";
@@ -14,7 +19,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { PasswordForm } from "@/login/password-form";
+import { PasswordForm } from "@/login/components/password-form";
 import { loginWithEmail } from "@/services/auth";
 
 const REGISTER_URL = "https://yun.haodeyun.cn/register";

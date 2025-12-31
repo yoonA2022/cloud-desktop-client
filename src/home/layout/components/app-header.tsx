@@ -1,3 +1,8 @@
+/**
+ * 应用头部组件
+ * 包含侧边栏触发器、主题切换和用户操作菜单
+ */
+
 import { LogOut } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";

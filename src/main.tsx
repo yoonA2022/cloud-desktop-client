@@ -1,3 +1,8 @@
+/**
+ * 应用入口文件
+ * 初始化React应用并设置Electron IPC通信
+ */
+
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'

@@ -1,3 +1,8 @@
+/**
+ * 认证相关类型定义
+ * 定义登录、用户信息等接口的TypeScript类型
+ */
+
 // 登录请求参数
 export interface LoginRequest {
   email: string;

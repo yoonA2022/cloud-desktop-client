@@ -1,3 +1,8 @@
+/**
+ * 应用侧边栏组件
+ * 显示应用导航菜单和品牌标识，支持折叠功能
+ */
+
 import { Home, Settings, Monitor } from "lucide-react";
 import logo from "@/assets/images/logo.png";
 import type { PageType } from "@/home/home-page";

@@ -1,3 +1,8 @@
+/**
+ * 本地存储工具库
+ * 提供认证令牌的存储和管理功能
+ */
+
 const TOKEN_KEY = "auth_token";
 
 export function getToken(): string | null {

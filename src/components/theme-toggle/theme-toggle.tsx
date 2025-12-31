@@ -1,4 +1,8 @@
-// 主题切换组件
+/**
+ * 主题切换组件
+ * 提供亮色和暗色主题之间的切换功能
+ * 支持系统偏好检测和本地存储持久化
+ */
 
 import { useEffect, useState } from "react"
 import { Moon, Sun } from "lucide-react"

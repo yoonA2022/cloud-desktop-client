@@ -1,3 +1,8 @@
+/**
+ * API服务工具
+ * 提供统一的HTTP请求封装，包含认证和错误处理
+ */
+
 import { getToken } from "@/lib/storage";
 
 const API_BASE_URL = "https://yun.haodeyun.cn";
