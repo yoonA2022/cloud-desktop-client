@@ -10,17 +10,18 @@ import logo from "@/assets/images/logo.png";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
-  Field,
   FieldDescription,
   FieldError,
   FieldGroup,
-  FieldLabel,
+  Field,
   FieldSeparator,
 } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { PasswordForm } from "@/login/components/password-form";
+import { PasswordForm } from "@/login/components/password-form/password-form";
 import { loginWithEmail } from "@/services/auth";
+
+import { EmailInput } from "./components/email-input";
+import { PhoneInput } from "./components/phone-input";
 
 const REGISTER_URL = "https://yun.haodeyun.cn/register";
 
@@ -163,7 +164,7 @@ export function LoginForm({
               className="flex flex-col items-center gap-2 font-medium"
             >
               <div className="flex size-8 items-center justify-center rounded-md">
-                <img src={logo} alt="豪得云 - 客户端" className="size-6" />
+                <img src={logo} alt="豪得云 - 客户端" className="size-6 aspect-square object-contain" />
               </div>
               <span className="sr-only">豪得云 - 客户端</span>
             </a>
@@ -199,33 +200,19 @@ export function LoginForm({
             </TabsList>
 
             <TabsContent value="email" className="mt-4">
-              <Field>
-                <FieldLabel htmlFor="email">邮箱</FieldLabel>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="请输入邮箱"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  aria-invalid={loginType === "email" && !!formError}
-                />
-              </Field>
+              <EmailInput
+                value={email}
+                onChange={setEmail}
+                hasError={loginType === "email" && !!formError}
+              />
             </TabsContent>
 
             <TabsContent value="phone" className="mt-4">
-              <Field>
-                <FieldLabel htmlFor="phone">手机号</FieldLabel>
-                <Input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  placeholder="请输入手机号"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  aria-invalid={loginType === "phone" && !!formError}
-                />
-              </Field>
+              <PhoneInput
+                value={phone}
+                onChange={setPhone}
+                hasError={loginType === "phone" && !!formError}
+              />
             </TabsContent>
 
             <FieldError className="text-center">{formError}</FieldError>

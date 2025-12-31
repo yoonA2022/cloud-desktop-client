@@ -14,11 +14,11 @@ import {
   FieldDescription,
   FieldError,
   FieldGroup,
-  FieldLabel,
 } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import { Tabs } from "@/components/ui/tabs";
 import { Spinner } from "@/components/ui/spinner";
+
+import { PasswordInput } from "./components/password-input";
 
 const PASSWORD_RESET_URL = "https://yun.haodeyun.cn/pwreset";
 
@@ -84,7 +84,7 @@ export function PasswordForm({
               className="flex flex-col items-center gap-2 font-medium"
             >
               <div className="flex size-8 items-center justify-center rounded-md">
-                <img src={logo} alt="豪得云 - 客户端" className="size-6" />
+                <img src={logo} alt="豪得云 - 客户端" className="size-6 aspect-square object-contain" />
               </div>
               <span className="sr-only">豪得云 - 客户端</span>
             </a>
@@ -95,20 +95,13 @@ export function PasswordForm({
           </div>
 
           <Tabs className="w-full">
-            <Field>
-              <FieldLabel htmlFor="password">密码</FieldLabel>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="请输入密码"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                aria-invalid={!!formError}
-                autoFocus
-              />
-            </Field>
-  
+            <PasswordInput
+              value={password}
+              onChange={setPassword}
+              hasError={!!formError}
+              autoFocus
+            />
+
             <FieldError className="text-center">{displayError}</FieldError>
           </Tabs>
 

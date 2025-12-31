@@ -3,7 +3,7 @@
  * 提供完整的登录界面布局，包含主题切换功能
  */
 
-import { LoginForm } from "@/login/components/login-form"
+import { LoginForm } from "@/login/components/login-form/login-form"
 import { ThemeToggle } from "@/components/theme-toggle/theme-toggle"
 
 interface LoginPageProps {

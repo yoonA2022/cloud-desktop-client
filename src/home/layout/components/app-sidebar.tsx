@@ -52,7 +52,7 @@ export function AppSidebar({ currentPage, onPageChange }: AppSidebarProps) {
             <SidebarMenuButton size="lg" asChild>
               <a href="#">
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <img src={logo} alt="豪得云" className="size-6" />
+                  <img src={logo} alt="豪得云" className="size-6 aspect-square object-contain" />
                 </div>
                 <div className="flex flex-col gap-0.5 leading-none">
                   <span className="font-semibold">豪得云</span>
