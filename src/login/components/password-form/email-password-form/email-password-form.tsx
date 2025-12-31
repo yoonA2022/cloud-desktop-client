@@ -1,6 +1,6 @@
 /**
- * 密码输入表单组件
- * 处理密码输入和登录提交，支持忘记密码功能
+ * 邮箱密码表单组件
+ * 处理邮箱登录的密码输入和提交
  */
 
 import { useState } from "react";
@@ -18,7 +18,7 @@ import {
 import { Tabs } from "@/components/ui/tabs";
 import { Spinner } from "@/components/ui/spinner";
 
-import { PasswordInput } from "./components/password-input";
+import { EmailPasswordInput } from "./components/email-password-input";
 
 const PASSWORD_RESET_URL = "https://yun.haodeyun.cn/pwreset";
 
@@ -33,32 +33,29 @@ function openExternal(url: string) {
   }
 }
 
-export interface PasswordFormProps extends Omit<
+export interface EmailPasswordFormProps extends Omit<
   React.ComponentProps<"div">,
   "onSubmit"
 > {
-  loginType: "email" | "phone";
-  account: string;
+  email: string;
   onBack: () => void;
   onSubmit: (password: string) => void;
   isLoading?: boolean;
   error?: string | null;
 }
 
-export function PasswordForm({
+export function EmailPasswordForm({
   className,
-  loginType,
-  account,
+  email,
   onBack,
   onSubmit,
   isLoading = false,
   error,
   ...props
-}: PasswordFormProps) {
+}: EmailPasswordFormProps) {
   const [password, setPassword] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
 
-  const accountLabel = loginType === "email" ? "邮箱" : "手机号";
   const displayError = error || formError;
 
   return (
@@ -90,12 +87,12 @@ export function PasswordForm({
             </a>
             <h1 className="text-xl font-bold">输入密码</h1>
             <FieldDescription>
-              {accountLabel}：{account}
+              邮箱：{email}
             </FieldDescription>
           </div>
 
           <Tabs className="w-full">
-            <PasswordInput
+            <EmailPasswordInput
               value={password}
               onChange={setPassword}
               hasError={!!formError}

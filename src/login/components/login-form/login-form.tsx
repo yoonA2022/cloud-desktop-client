@@ -17,11 +17,12 @@ import {
   FieldSeparator,
 } from "@/components/ui/field";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { PasswordForm } from "@/login/components/password-form/password-form";
+import { EmailPasswordForm } from "@/login/components/password-form/email-password-form/email-password-form";
+import { PhonePasswordForm } from "@/login/components/password-form/phone-password-form/phone-password-form";
+import { EmailInput } from "./email-input/email-input";
+import { PhoneInput } from "./phone-input/phone-input";
 import { loginWithEmail } from "@/services/auth";
-
-import { EmailInput } from "./components/email-input";
-import { PhoneInput } from "./components/phone-input";
+import { loginWithPhone } from "@/services/phone-auth";
 
 const REGISTER_URL = "https://yun.haodeyun.cn/register";
 
@@ -72,11 +73,10 @@ export function LoginForm({
   const [loginType, setLoginType] = useState<"email" | "phone">("email");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [phoneCode, setPhoneCode] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
-
-  const currentAccount = loginType === "email" ? email : phone;
 
   const handleAccountSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,6 +99,13 @@ export function LoginForm({
         setFormError("请输入手机号");
         return;
       }
+
+      // 检查手机号是否只包含数字
+      const phoneRegex = /^\d+$/;
+      if (!phoneRegex.test(phone.trim())) {
+        setFormError("手机号只能包含数字");
+        return;
+      }
     }
 
     setFormError(null);
@@ -110,25 +117,36 @@ export function LoginForm({
     setLoginError(null);
   };
 
-  const handlePasswordSubmit = async (password: string) => {
-    if (loginType !== "email") {
-      setLoginError("暂不支持手机号登录");
-      return;
-    }
-
+  const handlePasswordSubmit = async (password: string, captcha?: string) => {
     setIsLoading(true);
     setLoginError(null);
 
     try {
-      const response = await loginWithEmail({
-        email: currentAccount,
-        password,
-      });
+      if (loginType === "email") {
+        const response = await loginWithEmail({
+          email,
+          password,
+        });
 
-      if (response.status === 200) {
-        onLoginSuccess();
+        if (response.status === 200) {
+          onLoginSuccess();
+        } else {
+          setLoginError(response.msg || "登录失败，请重试");
+        }
       } else {
-        setLoginError(response.msg || "登录失败，请重试");
+        // 手机号登录
+        const response = await loginWithPhone({
+          phone_code: phoneCode,
+          phone,
+          password,
+          captcha,
+        });
+
+        if (response.status === 200) {
+          onLoginSuccess();
+        } else {
+          setLoginError(response.msg || "登录失败，请重试");
+        }
       }
     } catch {
       setLoginError("网络错误，请检查网络连接");
@@ -139,12 +157,26 @@ export function LoginForm({
 
   // 密码输入步骤
   if (step === "password") {
+    if (loginType === "email") {
+      return (
+        <EmailPasswordForm
+          {...props}
+          className={className}
+          email={email}
+          onBack={handleBack}
+          onSubmit={handlePasswordSubmit}
+          isLoading={isLoading}
+          error={loginError}
+        />
+      );
+    }
+
     return (
-      <PasswordForm
+      <PhonePasswordForm
         {...props}
         className={className}
-        loginType={loginType}
-        account={currentAccount}
+        phoneCode={phoneCode}
+        phone={phone}
         onBack={handleBack}
         onSubmit={handlePasswordSubmit}
         isLoading={isLoading}
@@ -211,6 +243,8 @@ export function LoginForm({
               <PhoneInput
                 value={phone}
                 onChange={setPhone}
+                phoneCode={phoneCode}
+                onPhoneCodeChange={setPhoneCode}
                 hasError={loginType === "phone" && !!formError}
               />
             </TabsContent>

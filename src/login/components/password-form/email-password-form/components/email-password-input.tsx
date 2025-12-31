@@ -1,5 +1,5 @@
 /**
- * 密码输入组件
+ * 邮箱密码输入组件
  * 支持点击眼睛图标切换密码可见性
  */
 
@@ -10,28 +10,28 @@ import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-interface PasswordInputProps {
+interface EmailPasswordInputProps {
   value: string;
   onChange: (value: string) => void;
   hasError?: boolean;
   autoFocus?: boolean;
 }
 
-export function PasswordInput({
+export function EmailPasswordInput({
   value,
   onChange,
   hasError,
   autoFocus,
-}: PasswordInputProps) {
+}: EmailPasswordInputProps) {
   const [showPassword, setShowPassword] = useState(false);
 
   return (
     <Field>
-      <FieldLabel htmlFor="password">密码</FieldLabel>
+      <FieldLabel htmlFor="email-password">密码</FieldLabel>
       <div className="relative">
         <Input
-          id="password"
-          name="password"
+          id="email-password"
+          name="email-password"
           type={showPassword ? "text" : "password"}
           placeholder="请输入密码"
           value={value}

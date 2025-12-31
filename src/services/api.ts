@@ -5,7 +5,8 @@
 
 import { getToken } from "@/lib/storage";
 
-const API_BASE_URL = "https://yun.haodeyun.cn";
+// 开发环境使用代理路径，生产环境使用完整URL
+const API_BASE_URL = import.meta.env.DEV ? "/api" : "https://yun.haodeyun.cn";
 
 interface RequestOptions extends RequestInit {
   params?: Record<string, string>;
@@ -32,6 +33,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 
   const response = await fetch(url, {
     ...rest,
+    credentials: "include", // 携带cookie保持session
     headers: {
       ...defaultHeaders,
       ...headers,
@@ -43,6 +45,18 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 }
 
 export const api = {
+  /**
+   * 获取完整的 API URL
+   */
+  getUrl(endpoint: string, params?: Record<string, string>): string {
+    let url = `${API_BASE_URL}${endpoint}`;
+    if (params) {
+      const searchParams = new URLSearchParams(params);
+      url += `?${searchParams.toString()}`;
+    }
+    return url;
+  },
+
   get<T>(endpoint: string, options?: RequestOptions): Promise<T> {
     return request<T>(endpoint, { ...options, method: "GET" });
   },
@@ -52,6 +66,21 @@ export const api = {
       ...options,
       method: "POST",
       body: body ? JSON.stringify(body) : undefined,
+    });
+  },
+
+  /**
+   * 发送表单数据（application/x-www-form-urlencoded）
+   */
+  postForm<T>(endpoint: string, body?: Record<string, string>, options?: RequestOptions): Promise<T> {
+    return request<T>(endpoint, {
+      ...options,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        ...options?.headers,
+      },
+      body: body ? new URLSearchParams(body).toString() : undefined,
     });
   },
 };
