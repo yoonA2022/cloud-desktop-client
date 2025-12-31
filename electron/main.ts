@@ -2,6 +2,10 @@ import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { existsSync } from 'node:fs'
+import { exec } from 'node:child_process'
+import { promisify } from 'node:util'
+
+const execAsync = promisify(exec)
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -34,6 +38,44 @@ ipcMain.handle('open-external', async (_event, url: string) => {
     await shell.openExternal(parsed.toString())
   } catch {
     return
+  }
+})
+
+/**
+ * 远程桌面连接 IPC handler
+ * 使用 Windows cmdkey 保存凭据，然后调用 mstsc 连接
+ */
+ipcMain.handle('remote-desktop-connect', async (_event, options: {
+  ip: string
+  port?: string
+  username: string
+  password: string
+}) => {
+  const { ip, port, username, password } = options
+
+  // 验证参数
+  if (!ip || !username || !password) {
+    return { success: false, error: '缺少必要的连接参数' }
+  }
+
+  // 构建服务器地址（如果有端口则添加端口）
+  const server = port && port !== '0' ? `${ip}:${port}` : ip
+
+  try {
+    // 使用 cmdkey 保存凭据
+    // /generic: 指定通用凭据
+    // TERMSRV/ 是远程桌面服务的前缀
+    const cmdkeyCommand = `cmdkey /generic:TERMSRV/${server} /user:${username} /pass:"${password}"`
+    await execAsync(cmdkeyCommand)
+
+    // 启动远程桌面连接
+    const mstscCommand = `mstsc /v:${server}`
+    exec(mstscCommand)
+
+    return { success: true }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : '连接失败'
+    return { success: false, error: errorMessage }
   }
 })
 

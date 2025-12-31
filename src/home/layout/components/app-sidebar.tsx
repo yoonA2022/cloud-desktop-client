@@ -74,6 +74,7 @@ export function AppSidebar({ currentPage, onPageChange }: AppSidebarProps) {
                     isActive={currentPage === item.page}
                     tooltip={item.title}
                     onClick={() => onPageChange(item.page)}
+                    className="cursor-pointer"
                   >
                     <item.icon />
                     <span>{item.title}</span>

@@ -12,6 +12,8 @@ export function HomeContent() {
   const [user, setUser] = useState<UserInfo | null>(null);
   const [clientGroup, setClientGroup] = useState<ClientGroup | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showFullPhone, setShowFullPhone] = useState(false);
+  const [showFullEmail, setShowFullEmail] = useState(false);
 
   useEffect(() => {
     async function fetchUserInfo() {
@@ -48,12 +50,31 @@ export function HomeContent() {
 
   const certifiStatus = getCertifiStatus(user?.certifi?.status);
 
+  const formatPhoneNumber = (phone: string) => {
+    if (!phone || phone === "未绑定") return phone;
+    if (showFullPhone) return phone;
+    // 显示前2位和后2位，中间用*替代
+    if (phone.length >= 4) {
+      return `${phone.slice(0, 2)}${"*".repeat(phone.length - 4)}${phone.slice(-2)}`;
+    }
+    return phone;
+  };
+
+  const formatEmail = (email: string) => {
+    if (!email || email === "未绑定") return email;
+    if (showFullEmail) return email;
+    // 显示前2位和@后面的域名，中间用*替代
+    const atIndex = email.indexOf("@");
+    if (atIndex > 2) {
+      return `${email.slice(0, 2)}${"*".repeat(atIndex - 2)}${email.slice(atIndex)}`;
+    }
+    return email;
+  };
+
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
-      <div>
-        <h2 className="text-2xl font-bold">欢迎使用豪得云</h2>
-        <p className="text-muted-foreground mt-1">这里是首页内容区域</p>
-      </div>
+    <div className="flex flex-1 flex-col gap-4 p-4">
+      <h2 className="text-2xl font-bold">欢迎使用豪得云</h2>
+      <p className="text-muted-foreground">这里是首页内容区域</p>
 
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
@@ -102,9 +123,12 @@ export function HomeContent() {
                 </div>
                 <div className="flex flex-col min-w-0">
                   <span className="text-xs text-muted-foreground">邮箱</span>
-                  <span className="text-sm font-medium truncate">
-                    {user.email || "未绑定"}
-                  </span>
+                  <button
+                    onClick={() => setShowFullEmail(!showFullEmail)}
+                    className="text-sm font-medium truncate text-left cursor-pointer hover:text-primary transition-colors"
+                  >
+                    {formatEmail(user.email || "未绑定")}
+                  </button>
                 </div>
               </div>
               <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
@@ -113,9 +137,12 @@ export function HomeContent() {
                 </div>
                 <div className="flex flex-col min-w-0">
                   <span className="text-xs text-muted-foreground">手机号</span>
-                  <span className="text-sm font-medium truncate">
-                    {user.phonenumber || "未绑定"}
-                  </span>
+                  <button
+                    onClick={() => setShowFullPhone(!showFullPhone)}
+                    className="text-sm font-medium truncate text-left cursor-pointer hover:text-primary transition-colors"
+                  >
+                    {formatPhoneNumber(user.phonenumber || "未绑定")}
+                  </button>
                 </div>
               </div>
               <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">

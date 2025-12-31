@@ -1,62 +1,63 @@
-import { ipcMain, shell, app, BrowserWindow } from "electron";
-import { fileURLToPath } from "node:url";
-import path from "node:path";
-import { existsSync } from "node:fs";
-const __dirname$1 = path.dirname(fileURLToPath(import.meta.url));
-process.env.APP_ROOT = path.join(__dirname$1, "..");
-const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
-const MAIN_DIST = path.join(process.env.APP_ROOT, "dist-electron");
-const RENDERER_DIST = path.join(process.env.APP_ROOT, "dist");
-process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, "public") : RENDERER_DIST;
-let win;
-ipcMain.handle("open-external", async (_event, url) => {
-  if (typeof url !== "string") return;
+import { ipcMain as f, shell as E, app as i, BrowserWindow as h } from "electron";
+import { fileURLToPath as g } from "node:url";
+import o from "node:path";
+import { existsSync as v } from "node:fs";
+import { exec as u } from "node:child_process";
+import { promisify as P } from "node:util";
+const y = P(u), R = o.dirname(g(import.meta.url));
+process.env.APP_ROOT = o.join(R, "..");
+const a = process.env.VITE_DEV_SERVER_URL, S = o.join(process.env.APP_ROOT, "dist-electron"), _ = o.join(process.env.APP_ROOT, "dist");
+process.env.VITE_PUBLIC = a ? o.join(process.env.APP_ROOT, "public") : _;
+let e;
+f.handle("open-external", async (r, n) => {
+  if (typeof n == "string")
+    try {
+      const t = new URL(n);
+      if (t.protocol !== "http:" && t.protocol !== "https:") return;
+      await E.openExternal(t.toString());
+    } catch {
+      return;
+    }
+});
+f.handle("remote-desktop-connect", async (r, n) => {
+  const { ip: t, port: c, username: p, password: m } = n;
+  if (!t || !p || !m)
+    return { success: !1, error: "缺少必要的连接参数" };
+  const l = c && c !== "0" ? `${t}:${c}` : t;
   try {
-    const parsed = new URL(url);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return;
-    await shell.openExternal(parsed.toString());
-  } catch {
-    return;
+    const s = `cmdkey /generic:TERMSRV/${l} /user:${p} /pass:"${m}"`;
+    await y(s);
+    const d = `mstsc /v:${l}`;
+    return u(d), { success: !0 };
+  } catch (s) {
+    return { success: !1, error: s instanceof Error ? s.message : "连接失败" };
   }
 });
-function createWindow() {
-  const iconPath = path.join(process.env.VITE_PUBLIC || "", "icon.png");
-  const icon = existsSync(iconPath) ? iconPath : void 0;
-  win = new BrowserWindow({
-    ...icon && { icon },
-    autoHideMenuBar: true,
+function w() {
+  const r = o.join(process.env.VITE_PUBLIC || "", "icon.png"), n = v(r) ? r : void 0;
+  e = new h({
+    ...n && { icon: n },
+    autoHideMenuBar: !0,
     width: 1200,
     height: 800,
     minWidth: 800,
     minHeight: 600,
     webPreferences: {
-      preload: path.join(__dirname$1, "preload.mjs")
+      preload: o.join(R, "preload.mjs")
     }
-  });
-  win.setMenuBarVisibility(false);
-  win.webContents.on("did-finish-load", () => {
-    win == null ? void 0 : win.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toLocaleString());
-  });
-  if (VITE_DEV_SERVER_URL) {
-    win.loadURL(VITE_DEV_SERVER_URL);
-  } else {
-    win.loadFile(path.join(RENDERER_DIST, "index.html"));
-  }
+  }), e.setMenuBarVisibility(!1), e.webContents.on("did-finish-load", () => {
+    e == null || e.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toLocaleString());
+  }), a ? e.loadURL(a) : e.loadFile(o.join(_, "index.html"));
 }
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
-    win = null;
-  }
+i.on("window-all-closed", () => {
+  process.platform !== "darwin" && (i.quit(), e = null);
 });
-app.on("activate", () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-  }
+i.on("activate", () => {
+  h.getAllWindows().length === 0 && w();
 });
-app.whenReady().then(createWindow);
+i.whenReady().then(w);
 export {
-  MAIN_DIST,
-  RENDERER_DIST,
-  VITE_DEV_SERVER_URL
+  S as MAIN_DIST,
+  _ as RENDERER_DIST,
+  a as VITE_DEV_SERVER_URL
 };
