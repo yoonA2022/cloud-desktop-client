@@ -241,7 +241,7 @@ export function HostDetailSheet({ hostId, open, onOpenChange }: HostDetailSheetP
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-lg overflow-y-auto p-0">
+      <SheetContent className="w-full sm:max-w-lg overflow-y-auto p-0 custom-scrollbar">
         <SheetHeader className="p-6 pb-0">
           <SheetTitle className="flex items-center gap-2">
             <Monitor className="size-5" />
@@ -303,16 +303,12 @@ export function HostDetailSheet({ hostId, open, onOpenChange }: HostDetailSheetP
                 <InfoRow label="IP地址">
                   <CopyableText value={hostData.dedicatedip} />
                 </InfoRow>
-                {hostData.port && hostData.port !== "0" && (
-                  <InfoRow label="端口">
-                    <CopyableText value={hostData.port} />
-                  </InfoRow>
-                )}
-                {detail?.["dcimcloud.nat_acl"] && (
-                  <InfoRow label="远程地址">
-                    <CopyableText value={detail["dcimcloud.nat_acl"]} />
-                  </InfoRow>
-                )}
+                <InfoRow label="端口">
+                  <CopyableText value={hostData.port || "-"} />
+                </InfoRow>
+                <InfoRow label="远程地址">
+                  <CopyableText value={detail?.["dcimcloud.nat_acl"] || "-"} />
+                </InfoRow>
               </InfoCard>
 
               {/* 登录凭证 */}

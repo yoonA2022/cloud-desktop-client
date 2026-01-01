@@ -4,21 +4,14 @@
  */
 
 import { useState, useEffect } from "react";
-import { RefreshCw, Monitor } from "lucide-react";
+import { RefreshCw, Monitor, Play, Info, MapPin, Calendar } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { getHostList } from "@/services/host";
+import { getHostDetail } from "@/services/host-detail";
 import { HostDetailSheet } from "./components/host-detail-sheet";
 import type { Host, HostStatus } from "@/types/host";
 
@@ -85,6 +78,7 @@ export function CloudDesktopContent() {
   const [error, setError] = useState<string | null>(null);
   const [selectedHostId, setSelectedHostId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [connectingId, setConnectingId] = useState<string | null>(null);
 
   // 加载主机列表
   const loadHosts = async () => {
@@ -116,15 +110,72 @@ export function CloudDesktopContent() {
   }, []);
 
   // 打开详情
-  const handleRowClick = (hostId: string) => {
+  const handleViewDetail = (hostId: string) => {
     setSelectedHostId(hostId);
     setDetailOpen(true);
+  };
+
+  // 远程连接
+  const handleRemoteConnect = async (host: Host) => {
+    if (!host.dedicatedip) {
+      return;
+    }
+
+    setConnectingId(host.id);
+    try {
+      // 先获取详情，拿到完整的登录凭据
+      const response = await getHostDetail(host.id);
+      if (response.status !== 200 || !response.data?.host_data) {
+        setError("获取连接信息失败");
+        return;
+      }
+
+      const hostData = response.data.host_data;
+      const ip = hostData.dedicatedip;
+      const port = hostData.port;
+      const username = hostData.username;
+      const password = hostData.password;
+
+      if (!ip || !username || !password) {
+        setError("缺少连接信息");
+        return;
+      }
+
+      // 调用本地远程桌面工具连接
+      const result = await window.ipcRenderer?.invoke("remote-desktop-connect", {
+        ip,
+        port,
+        username,
+        password,
+      }) as { success: boolean; error?: string } | undefined;
+
+      if (result && !result.success) {
+        setError(result.error || "连接失败");
+      }
+    } catch {
+      setError("连接失败，请重试");
+    } finally {
+      setConnectingId(null);
+    }
   };
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
       <h2 className="text-2xl font-bold">云电脑管理</h2>
       <p className="text-muted-foreground">管理您的云电脑实例</p>
+
+      <div className="flex items-center justify-between">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={loadHosts}
+          disabled={isLoading}
+          className="cursor-pointer"
+        >
+          <RefreshCw className={`size-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
+          刷新
+        </Button>
+      </div>
 
       {/* 加载状态 */}
       {isLoading && (
@@ -156,68 +207,72 @@ export function CloudDesktopContent() {
         </Card>
       )}
 
-      {/* 主机列表 */}
+      {/* 主机卡片列表 */}
       {!isLoading && !error && hosts.length > 0 && (
-        <Card className="w-full">
-          <CardHeader className="pb-0">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Monitor className="size-5 text-primary" />
-                <span className="font-medium">实例列表</span>
-                <span className="text-sm text-muted-foreground">({hosts.length})</span>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={loadHosts}
-                disabled={isLoading}
-                className="cursor-pointer"
-              >
-                <RefreshCw className={`size-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
-                刷新
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>产品名称</TableHead>
-                    <TableHead>状态</TableHead>
-                    <TableHead>IP地址</TableHead>
-                    <TableHead>操作系统</TableHead>
-                    <TableHead>区域</TableHead>
-                    <TableHead>到期时间</TableHead>
-                    <TableHead className="text-right">价格</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {hosts.map((host) => {
-                    const statusBadge = getStatusBadge(host.domainstatus);
-                    return (
-                      <TableRow
-                        key={host.id}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => handleRowClick(host.id)}
-                      >
-                        <TableCell className="font-medium">{host.productname}</TableCell>
-                        <TableCell>
-                          <Badge variant={statusBadge.variant}>{statusBadge.label}</Badge>
-                        </TableCell>
-                        <TableCell>{host.dedicatedip || "-"}</TableCell>
-                        <TableCell>{host.os || "-"}</TableCell>
-                        <TableCell>{host.area_name || "-"}</TableCell>
-                        <TableCell>{formatExpireDate(host.nextduedate)}</TableCell>
-                        <TableCell className="text-right">{host.price_desc || "-"}</TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {hosts.map((host) => {
+            const statusBadge = getStatusBadge(host.domainstatus);
+            const isConnecting = connectingId === host.id;
+            const isActive = host.domainstatus === "Active";
+
+            return (
+              <Card key={host.id} className="flex flex-col">
+                <CardHeader className="pb-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex items-center justify-center size-10 rounded-lg bg-primary/10 shrink-0">
+                        <Monitor className="size-5 text-primary" />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="font-semibold truncate">{host.productname}</h3>
+                        <p className="text-sm text-muted-foreground truncate">
+                          {host.dedicatedip || "暂无IP"}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant={statusBadge.variant} className="shrink-0">
+                      {statusBadge.label}
+                    </Badge>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="flex-1 pb-3">
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <MapPin className="size-4 shrink-0" />
+                      <span>{host.area_name || "-"}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Calendar className="size-4 shrink-0" />
+                      <span>{formatExpireDate(host.nextduedate)}</span>
+                    </div>
+                  </div>
+                </CardContent>
+
+                <CardFooter className="pt-0 gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 cursor-pointer"
+                    onClick={() => handleViewDetail(host.id)}
+                  >
+                    <Info className="size-4 mr-1" />
+                    详情
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="flex-1 cursor-pointer"
+                    disabled={!isActive || isConnecting}
+                    onClick={() => handleRemoteConnect(host)}
+                  >
+                    <Play className="size-4 mr-1" />
+                    {isConnecting ? "连接中..." : "连接"}
+                  </Button>
+                </CardFooter>
+              </Card>
+            );
+          })}
+        </div>
       )}
 
       {/* 详情面板 */}
