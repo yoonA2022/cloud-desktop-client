@@ -17,6 +17,18 @@ export interface PhoneLoginRequest {
 }
 
 /**
+ * 手机号+验证码登录请求参数
+ */
+export interface PhoneSmsLoginRequest {
+  /** 国际手机区号，如 86 */
+  phone_code: string;
+  /** 手机号 */
+  phone: string;
+  /** 短信验证码 */
+  code: string;
+}
+
+/**
  * 手机号登录响应
  */
 export interface PhoneLoginResponse {

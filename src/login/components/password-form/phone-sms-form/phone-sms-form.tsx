@@ -1,6 +1,6 @@
 /**
- * 手机号密码表单组件
- * 处理手机号登录的密码输入和提交
+ * 手机号验证码登录表单组件
+ * 处理手机号+短信验证码登录
  */
 
 import { useState } from "react";
@@ -18,54 +18,36 @@ import {
 import { Tabs } from "@/components/ui/tabs";
 import { Spinner } from "@/components/ui/spinner";
 
-import { PhonePasswordInput } from "./components/phone-password-input";
-import { CaptchaInput } from "./components/captcha-input";
+import { SmsCodeInput } from "./components/sms-code-input";
 
-const PASSWORD_RESET_URL = "https://yun.haodeyun.cn/pwreset";
-
-function openExternal(url: string) {
-  if (typeof window !== "undefined" && window.ipcRenderer?.invoke) {
-    window.ipcRenderer.invoke("open-external", url);
-    return;
-  }
-
-  if (typeof window !== "undefined") {
-    window.open(url, "_blank", "noopener,noreferrer");
-  }
-}
-
-export interface PhonePasswordFormProps extends Omit<
+export interface PhoneSmsFormProps extends Omit<
   React.ComponentProps<"div">,
   "onSubmit"
 > {
   phoneCode: string;
   phone: string;
   onBack: () => void;
-  onSubmit: (password: string, captcha: string) => void;
-  onSwitchToSms?: () => void;
+  onSubmit: (code: string) => void;
+  onSwitchToPassword?: () => void;
   isLoading?: boolean;
   error?: string | null;
 }
 
-export function PhonePasswordForm({
+export function PhoneSmsForm({
   className,
   phoneCode,
   phone,
   onBack,
   onSubmit,
-  onSwitchToSms,
+  onSwitchToPassword,
   isLoading = false,
   error,
   ...props
-}: PhonePasswordFormProps) {
-  const [password, setPassword] = useState("");
-  const [captcha, setCaptcha] = useState("");
+}: PhoneSmsFormProps) {
+  const [code, setCode] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
 
   const displayError = error || formError;
-
-  // 验证码唯一标识
-  const captchaName = "allow_login_phone_captcha";
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -74,18 +56,18 @@ export function PhonePasswordForm({
         onSubmit={(e) => {
           e.preventDefault();
 
-          if (!password.trim()) {
-            setFormError("请输入密码");
-            return;
-          }
-
-          if (!captcha.trim()) {
+          if (!code.trim()) {
             setFormError("请输入验证码");
             return;
           }
 
+          if (code.trim().length < 4) {
+            setFormError("验证码格式不正确");
+            return;
+          }
+
           setFormError(null);
-          onSubmit(password, captcha);
+          onSubmit(code);
         }}
       >
         <FieldGroup>
@@ -99,30 +81,22 @@ export function PhonePasswordForm({
               </div>
               <span className="sr-only">豪得云 - 客户端</span>
             </a>
-            <h1 className="text-xl font-bold">输入密码</h1>
+            <h1 className="text-xl font-bold">输入验证码</h1>
             <FieldDescription>
               手机号：{phoneCode} {phone}
             </FieldDescription>
           </div>
 
           <Tabs className="w-full">
-            <PhonePasswordInput
-              value={password}
-              onChange={setPassword}
-              hasError={!!formError && !password.trim()}
-              autoFocus
+            <SmsCodeInput
+              value={code}
+              onChange={setCode}
+              phoneCode={phoneCode}
+              phone={phone}
+              hasError={!!formError && !code.trim()}
             />
 
-            <div className="mt-4">
-              <CaptchaInput
-                value={captcha}
-                onChange={setCaptcha}
-                name={captchaName}
-                hasError={!!formError && !!password.trim() && !captcha.trim()}
-              />
-            </div>
-
-            <FieldError className="text-center">{displayError}</FieldError>
+            <FieldError className="text-center mt-4">{displayError}</FieldError>
           </Tabs>
 
           <Field>
@@ -151,33 +125,21 @@ export function PhonePasswordForm({
             </Button>
           </Field>
 
-          {onSwitchToSms && (
+          {onSwitchToPassword && (
             <Field>
               <Button
                 type="button"
                 variant="link"
                 className="cursor-pointer text-muted-foreground"
-                onClick={onSwitchToSms}
+                onClick={onSwitchToPassword}
                 disabled={isLoading}
               >
-                使用验证码登录
+                使用密码登录
               </Button>
             </Field>
           )}
         </FieldGroup>
       </form>
-      <FieldDescription className="px-6 text-center">
-        忘记密码？
-        <a
-          href={PASSWORD_RESET_URL}
-          onClick={(e) => {
-            e.preventDefault();
-            openExternal(PASSWORD_RESET_URL);
-          }}
-        >
-          立即重置
-        </a>
-      </FieldDescription>
     </div>
   );
 }

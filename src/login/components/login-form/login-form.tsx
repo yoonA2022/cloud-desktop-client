@@ -19,10 +19,11 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { EmailPasswordForm } from "@/login/components/password-form/email-password-form/email-password-form";
 import { PhonePasswordForm } from "@/login/components/password-form/phone-password-form/phone-password-form";
+import { PhoneSmsForm } from "@/login/components/password-form/phone-sms-form/phone-sms-form";
 import { EmailInput } from "./email-input/email-input";
 import { PhoneInput } from "./phone-input/phone-input";
 import { loginWithEmail } from "@/services/auth";
-import { loginWithPhone } from "@/services/phone-auth";
+import { loginWithPhone, loginWithPhoneSms } from "@/services/phone-auth";
 
 const REGISTER_URL = "https://yun.haodeyun.cn/register";
 
@@ -58,7 +59,7 @@ function Link({
   );
 }
 
-type LoginStep = "account" | "password";
+type LoginStep = "account" | "password" | "sms";
 
 interface LoginFormProps extends React.ComponentProps<"div"> {
   onLoginSuccess: () => void
@@ -109,11 +110,28 @@ export function LoginForm({
     }
 
     setFormError(null);
-    setStep("password");
+    // 手机号登录默认使用验证码方式
+    if (loginType === "phone") {
+      setStep("sms");
+    } else {
+      setStep("password");
+    }
   };
 
   const handleBack = () => {
     setStep("account");
+    setLoginError(null);
+  };
+
+  // 切换到密码登录
+  const handleSwitchToPassword = () => {
+    setStep("password");
+    setLoginError(null);
+  };
+
+  // 切换到验证码登录
+  const handleSwitchToSms = () => {
+    setStep("sms");
     setLoginError(null);
   };
 
@@ -155,6 +173,47 @@ export function LoginForm({
     }
   };
 
+  // 短信验证码登录提交
+  const handleSmsSubmit = async (code: string) => {
+    setIsLoading(true);
+    setLoginError(null);
+
+    try {
+      const response = await loginWithPhoneSms({
+        phone_code: phoneCode,
+        phone,
+        code,
+      });
+
+      if (response.status === 200) {
+        onLoginSuccess();
+      } else {
+        setLoginError(response.msg || "登录失败，请重试");
+      }
+    } catch {
+      setLoginError("网络错误，请检查网络连接");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 短信验证码输入步骤
+  if (step === "sms") {
+    return (
+      <PhoneSmsForm
+        {...props}
+        className={className}
+        phoneCode={phoneCode}
+        phone={phone}
+        onBack={handleBack}
+        onSubmit={handleSmsSubmit}
+        onSwitchToPassword={handleSwitchToPassword}
+        isLoading={isLoading}
+        error={loginError}
+      />
+    );
+  }
+
   // 密码输入步骤
   if (step === "password") {
     if (loginType === "email") {
@@ -179,6 +238,7 @@ export function LoginForm({
         phone={phone}
         onBack={handleBack}
         onSubmit={handlePasswordSubmit}
+        onSwitchToSms={handleSwitchToSms}
         isLoading={isLoading}
         error={loginError}
       />
