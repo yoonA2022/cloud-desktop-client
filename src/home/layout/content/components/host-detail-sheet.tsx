@@ -166,13 +166,22 @@ interface HostDetailSheetProps {
   hostId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  isConnected?: boolean;
+  onConnect?: () => void;
+  onDisconnect?: () => void;
 }
 
-export function HostDetailSheet({ hostId, open, onOpenChange }: HostDetailSheetProps) {
+export function HostDetailSheet({
+  hostId,
+  open,
+  onOpenChange,
+  isConnected = false,
+  onConnect,
+  onDisconnect,
+}: HostDetailSheetProps) {
   const [detail, setDetail] = useState<HostDetailData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isConnecting, setIsConnecting] = useState(false);
 
   useEffect(() => {
     if (!hostId || !open) {
@@ -203,41 +212,6 @@ export function HostDetailSheet({ hostId, open, onOpenChange }: HostDetailSheetP
 
   const hostData = detail?.host_data;
   const daysRemaining = hostData ? getDaysRemaining(hostData.nextduedate) : null;
-
-  /**
-   * 远程桌面连接
-   */
-  const handleRemoteConnect = async () => {
-    if (!hostData) return;
-
-    const ip = hostData.dedicatedip;
-    const port = hostData.port;
-    const username = hostData.username;
-    const password = hostData.password;
-
-    if (!ip || !username || !password) {
-      setError("缺少连接信息");
-      return;
-    }
-
-    setIsConnecting(true);
-    try {
-      const result = await window.ipcRenderer?.invoke("remote-desktop-connect", {
-        ip,
-        port,
-        username,
-        password,
-      }) as { success: boolean; error?: string } | undefined;
-
-      if (result && !result.success) {
-        setError(result.error || "连接失败");
-      }
-    } catch {
-      setError("连接失败，请重试");
-    } finally {
-      setIsConnecting(false);
-    }
-  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -287,15 +261,33 @@ export function HostDetailSheet({ hostId, open, onOpenChange }: HostDetailSheetP
 
               {/* 远程连接按钮 */}
               {hostData.domainstatus === "Active" && (
-                <Button
-                  className="w-full cursor-pointer"
-                  size="lg"
-                  onClick={handleRemoteConnect}
-                  disabled={isConnecting}
-                >
-                  <Play className="size-4 mr-2" />
-                  {isConnecting ? "正在连接..." : "远程连接"}
-                </Button>
+                <div className="space-y-2">
+                  {isConnected ? (
+                    <>
+                      <Badge variant="default" className="bg-green-600 w-full justify-center py-2">
+                        已连接
+                      </Badge>
+                      <Button
+                        variant="destructive"
+                        className="w-full cursor-pointer"
+                        size="lg"
+                        onClick={onDisconnect}
+                      >
+                        <Play className="size-4 mr-2" />
+                        断开连接
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      className="w-full cursor-pointer"
+                      size="lg"
+                      onClick={onConnect}
+                    >
+                      <Play className="size-4 mr-2" />
+                      远程连接
+                    </Button>
+                  )}
+                </div>
               )}
 
               {/* 连接信息 */}

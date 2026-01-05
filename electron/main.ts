@@ -79,6 +79,52 @@ ipcMain.handle('remote-desktop-connect', async (_event, options: {
   }
 })
 
+/**
+ * 断开远程桌面连接 IPC handler
+ * 删除保存的凭据并关闭远程桌面窗口
+ */
+ipcMain.handle('remote-desktop-disconnect', async (_event, options: {
+  ip: string
+  port?: string
+}) => {
+  const { ip, port } = options
+
+  // 验证参数
+  if (!ip) {
+    return { success: false, error: '缺少 IP 地址' }
+  }
+
+  // 构建服务器地址（如果有端口则添加端口）
+  const server = port && port !== '0' ? `${ip}:${port}` : ip
+
+  try {
+    // 1. 查找并关闭连接到指定服务器的远程桌面窗口
+    // 使用 tasklist 查找 mstsc.exe 进程，然后使用 taskkill 关闭
+    // 注意：这会关闭所有 mstsc.exe 进程，如果有多个远程桌面连接，都会被关闭
+    // 更精确的方法需要使用 Windows API 来查找特定窗口标题
+    try {
+      // 尝试通过窗口标题查找并关闭（窗口标题通常包含 IP 地址）
+      const killCommand = `powershell -Command "Get-Process mstsc -ErrorAction SilentlyContinue | Where-Object {$_.MainWindowTitle -like '*${ip}*'} | Stop-Process -Force"`
+      await execAsync(killCommand)
+    } catch {
+      // 如果上面的命令失败，忽略错误继续执行
+    }
+
+    // 2. 使用 cmdkey 删除保存的凭据
+    try {
+      const cmdkeyCommand = `cmdkey /delete:TERMSRV/${server}`
+      await execAsync(cmdkeyCommand)
+    } catch {
+      // 如果凭据不存在，忽略错误
+    }
+
+    return { success: true }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : '断开连接失败'
+    return { success: false, error: errorMessage }
+  }
+})
+
 function createWindow() {
   // 统一使用 icon.png 作为所有平台的图标
   const iconPath = path.join(process.env.VITE_PUBLIC || '', 'icon.png')

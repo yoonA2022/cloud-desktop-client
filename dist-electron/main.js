@@ -39,6 +39,29 @@ ipcMain.handle("remote-desktop-connect", async (_event, options) => {
     return { success: false, error: errorMessage };
   }
 });
+ipcMain.handle("remote-desktop-disconnect", async (_event, options) => {
+  const { ip, port } = options;
+  if (!ip) {
+    return { success: false, error: "缺少 IP 地址" };
+  }
+  const server = port && port !== "0" ? `${ip}:${port}` : ip;
+  try {
+    try {
+      const killCommand = `powershell -Command "Get-Process mstsc -ErrorAction SilentlyContinue | Where-Object {$_.MainWindowTitle -like '*${ip}*'} | Stop-Process -Force"`;
+      await execAsync(killCommand);
+    } catch {
+    }
+    try {
+      const cmdkeyCommand = `cmdkey /delete:TERMSRV/${server}`;
+      await execAsync(cmdkeyCommand);
+    } catch {
+    }
+    return { success: true };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "断开连接失败";
+    return { success: false, error: errorMessage };
+  }
+});
 function createWindow() {
   const iconPath = path.join(process.env.VITE_PUBLIC || "", "icon.png");
   const icon = existsSync(iconPath) ? iconPath : void 0;

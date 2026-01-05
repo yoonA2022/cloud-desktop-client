@@ -86,6 +86,8 @@ export function CloudDesktopContent() {
   const [reinstallHostId, setReinstallHostId] = useState<string | null>(null);
   const [cloudOsList, setCloudOsList] = useState<Array<{ id: string; name: string; group: string }>>([]);
   const [cloudOsGroups, setCloudOsGroups] = useState<Array<{ id: string; name: string }>>([]);
+  // 记录已连接的主机ID集合
+  const [connectedHostIds, setConnectedHostIds] = useState<Set<string>>(new Set());
 
   // 加载主机列表
   const loadHosts = async () => {
@@ -226,11 +228,50 @@ export function CloudDesktopContent() {
 
       if (result && !result.success) {
         setError(result.error || "连接失败");
+      } else if (result && result.success) {
+        // 连接成功，添加到已连接列表
+        setConnectedHostIds(prev => new Set(prev).add(host.id));
+        toast.success("连接成功", {
+          description: `已连接到 ${host.productname}`,
+          duration: 2000,
+        });
       }
     } catch {
       setError("连接失败，请重试");
     } finally {
       setConnectingId(null);
+    }
+  };
+
+  // 断开连接
+  const handleDisconnect = async (host: Host) => {
+    try {
+      // 获取主机详情以获取端口信息
+      const response = await getHostDetail(host.id);
+      const port = response.data?.host_data?.port;
+
+      // 调用断开连接的 IPC
+      const result = await window.ipcRenderer?.invoke("remote-desktop-disconnect", {
+        ip: host.dedicatedip,
+        port: port,
+      }) as { success: boolean; error?: string } | undefined;
+
+      if (result && result.success) {
+        // 从已连接列表中移除
+        setConnectedHostIds(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(host.id);
+          return newSet;
+        });
+        toast.success("已断开连接", {
+          description: `已断开与 ${host.productname} 的连接`,
+          duration: 2000,
+        });
+      } else {
+        setError(result?.error || "断开连接失败");
+      }
+    } catch {
+      setError("断开连接失败，请重试");
     }
   };
 
@@ -288,6 +329,7 @@ export function CloudDesktopContent() {
           {hosts.map((host) => {
             const statusBadge = getStatusBadge(host.domainstatus);
             const isConnecting = connectingId === host.id;
+            const isConnected = connectedHostIds.has(host.id);
             const isActive = host.domainstatus === "Active";
 
             return (
@@ -305,9 +347,16 @@ export function CloudDesktopContent() {
                         </p>
                       </div>
                     </div>
-                    <Badge variant={statusBadge.variant} className="shrink-0">
-                      {statusBadge.label}
-                    </Badge>
+                    <div className="flex flex-col gap-1 shrink-0">
+                      <Badge variant={statusBadge.variant}>
+                        {statusBadge.label}
+                      </Badge>
+                      {isConnected && (
+                        <Badge variant="default" className="bg-green-600">
+                          已连接
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
 
@@ -335,15 +384,27 @@ export function CloudDesktopContent() {
                       <Info className="size-4 mr-1" />
                       详情
                     </Button>
-                    <Button
-                      size="sm"
-                      className="flex-1 cursor-pointer"
-                      disabled={!isActive || isConnecting}
-                      onClick={() => handleRemoteConnect(host)}
-                    >
-                      <Play className="size-4 mr-1" />
-                      {isConnecting ? "连接中..." : "连接"}
-                    </Button>
+                    {isConnected ? (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="flex-1 cursor-pointer"
+                        onClick={() => handleDisconnect(host)}
+                      >
+                        <Play className="size-4 mr-1" />
+                        断开
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        className="flex-1 cursor-pointer"
+                        disabled={!isActive || isConnecting}
+                        onClick={() => handleRemoteConnect(host)}
+                      >
+                        <Play className="size-4 mr-1" />
+                        {isConnecting ? "连接中..." : "连接"}
+                      </Button>
+                    )}
                   </div>
                   <Button
                     variant="outline"
@@ -367,6 +428,15 @@ export function CloudDesktopContent() {
         hostId={selectedHostId}
         open={detailOpen}
         onOpenChange={setDetailOpen}
+        isConnected={selectedHostId ? connectedHostIds.has(selectedHostId) : false}
+        onConnect={() => {
+          const host = hosts.find(h => h.id === selectedHostId);
+          if (host) handleRemoteConnect(host);
+        }}
+        onDisconnect={() => {
+          const host = hosts.find(h => h.id === selectedHostId);
+          if (host) handleDisconnect(host);
+        }}
       />
 
       {/* 重装系统对话框 */}
