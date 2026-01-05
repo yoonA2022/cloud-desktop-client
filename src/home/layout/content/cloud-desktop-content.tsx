@@ -4,7 +4,8 @@
  */
 
 import { useState, useEffect } from "react";
-import { RefreshCw, Monitor, Play, Info, MapPin, Calendar } from "lucide-react";
+import { RefreshCw, Monitor, Play, Info, MapPin, Calendar, RotateCw } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -12,7 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { getHostList } from "@/services/host";
 import { getHostDetail } from "@/services/host-detail";
+import { reinstallSystem } from "@/services/reinstall";
 import { HostDetailSheet } from "./components/host-detail-sheet";
+import { ReinstallDialog } from "./components/reinstall-dialog";
 import type { Host, HostStatus } from "@/types/host";
 
 /**
@@ -79,6 +82,10 @@ export function CloudDesktopContent() {
   const [selectedHostId, setSelectedHostId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [connectingId, setConnectingId] = useState<string | null>(null);
+  const [reinstallOpen, setReinstallOpen] = useState(false);
+  const [reinstallHostId, setReinstallHostId] = useState<string | null>(null);
+  const [cloudOsList, setCloudOsList] = useState<Array<{ id: string; name: string; group: string }>>([]);
+  const [cloudOsGroups, setCloudOsGroups] = useState<Array<{ id: string; name: string }>>([]);
 
   // 加载主机列表
   const loadHosts = async () => {
@@ -113,6 +120,74 @@ export function CloudDesktopContent() {
   const handleViewDetail = (hostId: string) => {
     setSelectedHostId(hostId);
     setDetailOpen(true);
+  };
+
+  // 打开重装系统对话框
+  const handleOpenReinstall = async (hostId: string) => {
+    setReinstallHostId(hostId);
+
+    // 获取主机详情以获取操作系统列表和主机类型
+    try {
+      const response = await getHostDetail(hostId);
+
+      if (response.status === 200 && response.data) {
+        setCloudOsList(response.data.cloud_os || []);
+        setCloudOsGroups(response.data.cloud_os_group || []);
+        setReinstallOpen(true);
+      } else {
+        setError("获取操作系统列表失败");
+      }
+    } catch (err) {
+      console.error('获取主机详情失败:', err);
+      setError("获取操作系统列表失败");
+    }
+  };
+
+  // 执行重装系统
+  const handleReinstall = async (params: {
+    hostId: string;
+    osId: string;
+    osGroupId?: string;
+    password: string;
+  }) => {
+    // 获取主机类型
+    const host = hosts.find((h) => h.id === params.hostId);
+    const hostType = host?.type || 'cloud'; // 默认为 cloud 类型
+
+    try {
+      const response = await reinstallSystem({
+        id: params.hostId,
+        hostType: hostType as 'cloud' | 'dcim' | 'dcimcloud',
+        os: params.osId,
+        os_group: params.osGroupId,
+        password: params.password,
+        port: 3389, // Windows默认端口3389
+        action: 0, // 0默认分区
+        part_type: 0, // Windows全盘格式化
+        disk: 0, // 磁盘号从0开始
+        check_disk_size: 1, // 验证磁盘大小
+      });
+
+      if (response.status === 200) {
+        // 重装成功，刷新主机列表
+        await loadHosts();
+        setError(null);
+
+        // 使用 Sonner 显示成功提示
+        toast.success("重装系统成功", {
+          description: "系统正在重装中，请稍后...",
+          duration: 3000,
+        });
+      } else {
+        // 重装失败，显示错误信息
+        throw new Error(response.msg || "重装系统失败");
+      }
+    } catch (err) {
+      console.error('重装系统异常:', err);
+      const errorMessage = err instanceof Error ? err.message : "重装系统失败，请重试";
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    }
   };
 
   // 远程连接
@@ -249,24 +324,36 @@ export function CloudDesktopContent() {
                   </div>
                 </CardContent>
 
-                <CardFooter className="pt-0 gap-2">
+                <CardFooter className="pt-0 gap-2 flex-col">
+                  <div className="flex gap-2 w-full">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 cursor-pointer"
+                      onClick={() => handleViewDetail(host.id)}
+                    >
+                      <Info className="size-4 mr-1" />
+                      详情
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="flex-1 cursor-pointer"
+                      disabled={!isActive || isConnecting}
+                      onClick={() => handleRemoteConnect(host)}
+                    >
+                      <Play className="size-4 mr-1" />
+                      {isConnecting ? "连接中..." : "连接"}
+                    </Button>
+                  </div>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="flex-1 cursor-pointer"
-                    onClick={() => handleViewDetail(host.id)}
+                    className="w-full cursor-pointer"
+                    disabled={!isActive}
+                    onClick={() => handleOpenReinstall(host.id)}
                   >
-                    <Info className="size-4 mr-1" />
-                    详情
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="flex-1 cursor-pointer"
-                    disabled={!isActive || isConnecting}
-                    onClick={() => handleRemoteConnect(host)}
-                  >
-                    <Play className="size-4 mr-1" />
-                    {isConnecting ? "连接中..." : "连接"}
+                    <RotateCw className="size-4 mr-1" />
+                    重装系统
                   </Button>
                 </CardFooter>
               </Card>
@@ -280,6 +367,17 @@ export function CloudDesktopContent() {
         hostId={selectedHostId}
         open={detailOpen}
         onOpenChange={setDetailOpen}
+      />
+
+      {/* 重装系统对话框 */}
+      <ReinstallDialog
+        open={reinstallOpen}
+        onOpenChange={setReinstallOpen}
+        hostId={reinstallHostId}
+        hostName={hosts.find((h) => h.id === reinstallHostId)?.productname}
+        cloudOsList={cloudOsList}
+        cloudOsGroups={cloudOsGroups}
+        onReinstall={handleReinstall}
       />
     </div>
   );

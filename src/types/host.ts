@@ -54,6 +54,8 @@ export interface Host {
   area_code: string;
   /** 区域名称 */
   area_name: string;
+  /** 主机类型：cloud / dcim / dcimcloud */
+  type?: string;
 }
 
 /**

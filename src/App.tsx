@@ -7,6 +7,7 @@ import { useState, useEffect } from "react"
 import { LoginPage } from "@/login/login-page"
 import { HomePage } from "@/home/home-page"
 import { LoadingScreen } from "@/components/loading/loading-screen"
+import { Toaster } from "@/components/ui/sonner"
 import { checkAuthStatus } from "@/services/auth"
 import { hasToken } from "@/lib/storage"
 
@@ -36,10 +37,15 @@ function App() {
     return <LoadingScreen />
   }
 
-  return isLoggedIn ? (
-    <HomePage onLogout={() => setIsLoggedIn(false)} />
-  ) : (
-    <LoginPage onLoginSuccess={() => setIsLoggedIn(true)} />
+  return (
+    <>
+      {isLoggedIn ? (
+        <HomePage onLogout={() => setIsLoggedIn(false)} />
+      ) : (
+        <LoginPage onLoginSuccess={() => setIsLoggedIn(true)} />
+      )}
+      <Toaster />
+    </>
   )
 }
 

@@ -74,6 +74,8 @@ export interface HostData {
   allow_upgrade_product: number;
   /** 是否显示用量图 */
   show_traffic_usage: number;
+  /** 主机类型：cloud / dcim / dcimcloud */
+  type?: string;
 }
 
 /**
