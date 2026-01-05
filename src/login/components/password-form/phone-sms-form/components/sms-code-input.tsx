@@ -130,7 +130,7 @@ export function SmsCodeInput({
         // 刷新图形验证码
         handleRefreshCaptcha();
       }
-    } catch {
+    } catch (error) {
       setSendError("网络错误，请重试");
       handleRefreshCaptcha();
     } finally {

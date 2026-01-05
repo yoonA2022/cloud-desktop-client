@@ -22,3 +22,13 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
   // You can expose other APTs you need here.
   // ...
 })
+
+// --------- Expose HTTP request API ---------
+contextBridge.exposeInMainWorld('electronHttp', {
+  request: (options: {
+    url: string
+    method?: string
+    headers?: Record<string, string>
+    body?: string
+  }) => ipcRenderer.invoke('http-request', options)
+})

@@ -8,6 +8,9 @@ import { getToken } from "@/lib/storage";
 // 开发环境使用代理路径，生产环境使用完整URL
 const API_BASE_URL = import.meta.env.DEV ? "/api" : "https://yun.haodeyun.cn";
 
+// 检测是否在 Electron 环境中
+const isElectron = typeof window !== 'undefined' && window.electronHttp !== undefined;
+
 interface RequestOptions extends RequestInit {
   params?: Record<string, string>;
 }
@@ -23,7 +26,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
   }
 
   const token = getToken();
-  const defaultHeaders: HeadersInit = {
+  const defaultHeaders: Record<string, string> = {
     "Content-Type": "application/json",
   };
 
@@ -31,16 +34,38 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     defaultHeaders["Authorization"] = `Bearer ${token}`;
   }
 
+  // 合并自定义 headers
+  const finalHeaders = { ...defaultHeaders };
+  if (headers) {
+    Object.entries(headers).forEach(([key, value]) => {
+      if (typeof value === 'string') {
+        finalHeaders[key] = value;
+      }
+    });
+  }
+
+  // 在生产环境的 Electron 中使用主进程请求
+  if (isElectron && !import.meta.env.DEV) {
+    const response = await window.electronHttp!.request({
+      url,
+      method: rest.method as string || "GET",
+      headers: finalHeaders,
+      body: rest.body as string,
+    });
+
+    return response.data as T;
+  }
+
+  // 开发环境或浏览器环境使用 fetch
   const response = await fetch(url, {
     ...rest,
     credentials: "include", // 携带cookie保持session
-    headers: {
-      ...defaultHeaders,
-      ...headers,
-    },
+    mode: "cors", // 允许跨域
+    headers: finalHeaders,
   });
 
   const data = await response.json();
+
   return data as T;
 }
 

@@ -1,9 +1,10 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, shell, session } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { existsSync } from 'node:fs'
 import { exec } from 'node:child_process'
 import { promisify } from 'node:util'
+import { net } from 'electron'
 
 const execAsync = promisify(exec)
 
@@ -123,6 +124,151 @@ ipcMain.handle('remote-desktop-disconnect', async (_event, options: {
     const errorMessage = error instanceof Error ? error.message : '断开连接失败'
     return { success: false, error: errorMessage }
   }
+})
+
+/**
+ * HTTP 请求 IPC handler
+ * 通过主进程发送 HTTP 请求，自动处理 Cookie
+ */
+ipcMain.handle('http-request', async (_event, options: {
+  url: string
+  method?: string
+  headers?: Record<string, string>
+  body?: string
+}) => {
+  const { url, method = 'GET', headers = {}, body } = options
+
+  return new Promise((resolve, reject) => {
+    // 从 session 中获取 Cookie
+    session.defaultSession.cookies.get({ url })
+      .then(cookies => {
+        const request = net.request({
+          method,
+          url,
+          session: session.defaultSession,
+        })
+
+        // 设置请求头
+        Object.entries(headers).forEach(([key, value]) => {
+          request.setHeader(key, value)
+        })
+
+        // 手动设置 Cookie 头
+        if (cookies.length > 0) {
+          const cookieHeader = cookies.map(cookie => `${cookie.name}=${cookie.value}`).join('; ')
+          request.setHeader('Cookie', cookieHeader)
+        }
+
+        // 收集响应数据
+        let responseData = Buffer.alloc(0)
+        let statusCode = 0
+        let responseHeaders: Record<string, string | string[]> = {}
+
+        request.on('response', (response) => {
+          statusCode = response.statusCode
+          responseHeaders = response.headers
+
+          // 保存响应中的 Cookie
+          const setCookieHeaders = responseHeaders['set-cookie']
+          if (setCookieHeaders) {
+            const cookieStrings = Array.isArray(setCookieHeaders) ? setCookieHeaders : [setCookieHeaders]
+            cookieStrings.forEach(cookieString => {
+              // 解析 Cookie 字符串
+              const parts = cookieString.split(';')
+              const [nameValue] = parts
+              const [name, value] = nameValue.split('=')
+
+              if (name && value) {
+                // 提取 Cookie 属性
+                let expirationDate: number | undefined
+                let domain: string | undefined
+                let path = '/'
+                let secure = false
+                let httpOnly = false
+
+                parts.slice(1).forEach(part => {
+                  const trimmed = part.trim().toLowerCase()
+                  if (trimmed.startsWith('expires=')) {
+                    const dateStr = part.split('=')[1]
+                    expirationDate = new Date(dateStr).getTime() / 1000
+                  } else if (trimmed.startsWith('max-age=')) {
+                    const maxAge = parseInt(part.split('=')[1])
+                    expirationDate = Date.now() / 1000 + maxAge
+                  } else if (trimmed.startsWith('domain=')) {
+                    domain = part.split('=')[1]
+                  } else if (trimmed.startsWith('path=')) {
+                    path = part.split('=')[1]
+                  } else if (trimmed === 'secure') {
+                    secure = true
+                  } else if (trimmed === 'httponly') {
+                    httpOnly = true
+                  }
+                })
+
+                // 保存 Cookie
+                session.defaultSession.cookies.set({
+                  url,
+                  name: name.trim(),
+                  value: value.trim(),
+                  domain,
+                  path,
+                  secure,
+                  httpOnly,
+                  expirationDate,
+                }).catch(err => {
+                  console.error('Failed to set cookie:', err)
+                })
+              }
+            })
+          }
+
+          response.on('data', (chunk) => {
+            responseData = Buffer.concat([responseData, chunk])
+          })
+
+          response.on('end', () => {
+            // 尝试解析为 JSON，如果失败则返回原始数据
+            let data: unknown
+            const contentType = responseHeaders['content-type']
+
+            if (typeof contentType === 'string' && contentType.includes('application/json')) {
+              try {
+                data = JSON.parse(responseData.toString('utf-8'))
+              } catch {
+                data = responseData.toString('utf-8')
+              }
+            } else if (typeof contentType === 'string' && contentType.includes('image/')) {
+              // 图片数据返回 base64
+              data = `data:${contentType};base64,${responseData.toString('base64')}`
+            } else {
+              data = responseData.toString('utf-8')
+            }
+
+            resolve({
+              statusCode,
+              headers: responseHeaders,
+              data,
+            })
+          })
+
+          response.on('error', (error: Error) => {
+            reject(error)
+          })
+        })
+
+        request.on('error', (error: Error) => {
+          reject(error)
+        })
+
+        // 发送请求体
+        if (body) {
+          request.write(body)
+        }
+
+        request.end()
+      })
+      .catch(reject)
+  })
 })
 
 function createWindow() {

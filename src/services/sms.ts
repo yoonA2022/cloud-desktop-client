@@ -27,5 +27,6 @@ export async function sendLoginSms(data: SendSmsRequest): Promise<SendSmsRespons
     formData.mk = data.mk;
   }
 
-  return api.postForm<SendSmsResponse>("/login_send", formData);
+  const response = await api.postForm<SendSmsResponse>("/login_send", formData);
+  return response;
 }
