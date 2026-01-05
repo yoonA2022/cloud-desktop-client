@@ -149,12 +149,12 @@ export function ReinstallDialog({
 
         <div className="space-y-4 py-4">
           {/* 警告提示 */}
-          <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 dark:bg-destructive/20 border border-destructive/20 dark:border-destructive/30">
             <AlertTriangle className="size-5 text-destructive shrink-0 mt-0.5" />
             <div className="text-sm">
               <p className="font-medium text-destructive mb-1">重要提示</p>
               <p className="text-muted-foreground">
-                重装系统将清空所有数据，请确保已备份重要文件。此操作不可恢复。
+                重装系统将清空所有数据，请确保已备份重要文件，此操作不可恢复，如重装后无法连接请尝试重置密码。
               </p>
             </div>
           </div>

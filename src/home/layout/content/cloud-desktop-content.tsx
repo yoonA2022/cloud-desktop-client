@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { RefreshCw, Monitor, Play, Info, MapPin, Calendar, RotateCw } from "lucide-react";
+import { RefreshCw, Monitor, Play, Info, MapPin, Calendar, RotateCw, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -14,8 +14,10 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { getHostList } from "@/services/host";
 import { getHostDetail } from "@/services/host-detail";
 import { reinstallSystem } from "@/services/reinstall";
+import { resetPassword } from "@/services/reset-password";
 import { HostDetailSheet } from "./components/host-detail-sheet";
 import { ReinstallDialog } from "./components/reinstall-dialog";
+import { ResetPasswordDialog } from "./components/reset-password-dialog";
 import type { Host, HostStatus } from "@/types/host";
 
 /**
@@ -88,6 +90,9 @@ export function CloudDesktopContent() {
   const [cloudOsGroups, setCloudOsGroups] = useState<Array<{ id: string; name: string }>>([]);
   // 记录已连接的主机ID集合
   const [connectedHostIds, setConnectedHostIds] = useState<Set<string>>(new Set());
+  // 重置密码对话框状态
+  const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
+  const [resetPasswordHostId, setResetPasswordHostId] = useState<string | null>(null);
 
   // 加载主机列表
   const loadHosts = async () => {
@@ -187,6 +192,46 @@ export function CloudDesktopContent() {
     } catch (err) {
       console.error('重装系统异常:', err);
       const errorMessage = err instanceof Error ? err.message : "重装系统失败，请重试";
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    }
+  };
+
+  // 打开重置密码对话框
+  const handleOpenResetPassword = (hostId: string) => {
+    setResetPasswordHostId(hostId);
+    setResetPasswordOpen(true);
+  };
+
+  // 执行重置密码
+  const handleResetPassword = async (params: {
+    hostId: string;
+    password: string;
+  }) => {
+    // 获取主机类型
+    const host = hosts.find((h) => h.id === params.hostId);
+    const hostType = host?.type || 'cloud'; // 默认为 cloud 类型
+
+    try {
+      const response = await resetPassword({
+        id: params.hostId,
+        hostType: hostType as 'cloud' | 'dcim' | 'dcimcloud',
+        password: params.password,
+      });
+
+      if (response.status === 200 || response.status === 201 || response.status === 203 || response.status === 204) {
+        // 重置成功
+        toast.success("重置密码成功", {
+          description: "密码已重置，请使用新密码连接",
+          duration: 3000,
+        });
+      } else {
+        // 重置失败
+        throw new Error(response.msg || "重置密码失败");
+      }
+    } catch (err) {
+      console.error('重置密码异常:', err);
+      const errorMessage = err instanceof Error ? err.message : "重置密码失败，请重试";
       setError(errorMessage);
       throw new Error(errorMessage);
     }
@@ -406,16 +451,28 @@ export function CloudDesktopContent() {
                       </Button>
                     )}
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full cursor-pointer"
-                    disabled={!isActive}
-                    onClick={() => handleOpenReinstall(host.id)}
-                  >
-                    <RotateCw className="size-4 mr-1" />
-                    重装系统
-                  </Button>
+                  <div className="flex gap-2 w-full">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 cursor-pointer"
+                      disabled={!isActive}
+                      onClick={() => handleOpenReinstall(host.id)}
+                    >
+                      <RotateCw className="size-4 mr-1" />
+                      重装系统
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 cursor-pointer"
+                      disabled={!isActive}
+                      onClick={() => handleOpenResetPassword(host.id)}
+                    >
+                      <KeyRound className="size-4 mr-1" />
+                      重置密码
+                    </Button>
+                  </div>
                 </CardFooter>
               </Card>
             );
@@ -448,6 +505,15 @@ export function CloudDesktopContent() {
         cloudOsList={cloudOsList}
         cloudOsGroups={cloudOsGroups}
         onReinstall={handleReinstall}
+      />
+
+      {/* 重置密码对话框 */}
+      <ResetPasswordDialog
+        open={resetPasswordOpen}
+        onOpenChange={setResetPasswordOpen}
+        hostId={resetPasswordHostId}
+        hostName={hosts.find((h) => h.id === resetPasswordHostId)?.productname}
+        onResetPassword={handleResetPassword}
       />
     </div>
   );
